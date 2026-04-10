@@ -49,6 +49,14 @@ cd agent-tripwire
 ./install.sh
 ```
 
+### Option 4: Install skill directly via Openclaw
+
+```bash
+openclaw skills install https://raw.githubusercontent.com/leomercier/agent-tripwire/refs/heads/main/SKILL.md
+```
+
+Installs the skill into Openclaw without cloning the repo. Use this if you already have `atw` on your PATH.
+
 After install, confirm it's working:
 
 ```bash
@@ -169,20 +177,58 @@ echo "$TW_ASSET hit $TW_CONDITION at \$$TW_PRICE on $TW_FIRED_AT" >> ~/alerts.lo
 
 ---
 
-## Agent call format
+## Alert delivery model
 
-When `--agent` fires, tripwire runs:
+Tripwire uses a dual delivery model. Do not assume the daemon can callback directly into the open webchat turn.
 
-```bash
-openclaw agent --message "TW_ASSET=BTC/USD TW_PRICE=71800 TW_CONDITION=down TW_PCT_CHANGE=5.23% TW_FIRED_AT=...
+**Primary delivery — queue for heartbeat:**
+1. Every trigger writes a JSONL record to `~/.tripwire/alerts.queue`
+2. Heartbeat polls the queue and surfaces new alerts in the main session
+3. Acknowledged alert ids are recorded in `~/.tripwire/alerts.ack` to prevent duplicates
 
-<user prompt>"
-```
+**Fallback delivery — best-effort via openclaw agent:**
+1. If `TW_SESSION_ID` is set, the daemon calls `openclaw agent --session-id "$TW_SESSION_ID"`
+2. Otherwise it targets `--agent main`
+3. The message is self-contained so it can be surfaced without additional context
+4. Never rely on `--deliver --local` alone without an explicit session or agent target
 
 Configure the Openclaw binary path if non-default:
 
 ```bash
 export TW_OPENCLAW_BIN=/usr/local/bin/openclaw  # default: "openclaw"
+```
+
+Set a session target for immediate fallback delivery:
+
+```bash
+export TW_SESSION_ID=<your-session-id>
+```
+
+---
+
+## Heartbeat rules
+
+- During heartbeat, read `HEARTBEAT.md` and check for unacknowledged queued alerts
+- If there are no new alerts, reply exactly `HEARTBEAT_OK`
+- If there are new alerts, return only the alert summary — do not include `HEARTBEAT_OK`
+- Deduplicate by alert `id`
+- Batch alerts that fire close together
+
+Recommended heartbeat config:
+
+```json
+{
+  "agents": {
+    "defaults": {
+      "heartbeat": {
+        "every": "5m",
+        "target": "last",
+        "lightContext": true,
+        "prompt": "Read HEARTBEAT.md if it exists. Follow it strictly. If nothing needs attention, reply HEARTBEAT_OK."
+      }
+    }
+  }
+}
 ```
 
 ---

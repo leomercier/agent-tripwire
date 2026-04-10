@@ -1,6 +1,6 @@
 {
   "name": "@astridarena/agent-tripwire",
-  "version": "1.0.3",
+  "version": "1.0.4",
   "description": "Crypto market event system for AI agents. Set price conditions — when they trip, agents act.",
   "type": "module",
   "bin": {

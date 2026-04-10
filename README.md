@@ -53,7 +53,15 @@ Starting agent-tripwire daemon...
 
 ## Install
 
-For regular use — puts `atw` and `agent-tripwire` on your PATH and installs the Openclaw skill:
+**CLI only (npm)**
+
+```bash
+npm install -g @astridarena/agent-tripwire
+```
+
+Puts `atw` and `agent-tripwire` on your PATH. Requires Node.js 18+.
+
+**CLI + Openclaw skill (clone)**
 
 ```bash
 git clone https://github.com/leomercier/agent-tripwire
@@ -61,13 +69,13 @@ cd agent-tripwire
 ./install.sh
 ```
 
-Or via npm:
+**Openclaw skill only**
 
 ```bash
-npm install -g @astridarena/agent-tripwire
+openclaw skills install https://raw.githubusercontent.com/leomercier/agent-tripwire/refs/heads/main/SKILL.md
 ```
 
-Requires Node.js 18+.
+Installs the skill directly into Openclaw without cloning the repo. Useful if you already have `atw` on your PATH.
 
 ---
 
@@ -254,21 +262,32 @@ echo "$TW_ASSET hit $TW_CONDITION at \$$TW_PRICE on $TW_FIRED_AT" >> ~/alerts.lo
 
 ## Openclaw integration
 
-The `--agent` flag calls Openclaw with the market context prepended to your prompt:
+Tripwire uses a **dual delivery model** — alerts are queued for heartbeat (primary) and optionally sent via `openclaw agent` as a best-effort fallback.
 
+**Primary — queue for heartbeat:**
+
+Every fired condition writes a JSONL record to `~/.tripwire/alerts.queue`. A heartbeat agent polls this file, surfaces unacknowledged alerts in the main session, and records their ids in `~/.tripwire/alerts.ack` to prevent repeats.
+
+**Fallback — immediate delivery via openclaw agent:**
+
+When `--agent` is set, the daemon sends a self-contained alert to Openclaw using explicit session or agent targeting:
+
+```bash
+# targets the session id if TW_SESSION_ID is set
+openclaw agent --session-id "$TW_SESSION_ID" --message "TRIPWIRE ALERT ..." --deliver --local
+
+# otherwise falls back to the main agent
+openclaw agent --agent main --message "TRIPWIRE ALERT ..." --deliver --local
 ```
-TW_ASSET=BTC/USD TW_PRICE=79800 TW_CONDITION=cross TW_FIRED_AT=2025-04-10T14:32:00Z
 
-Your prompt here
+Set a session target for immediate fallback delivery:
+
+```bash
+export TW_SESSION_ID=<your-session-id>       # optional: explicit session routing
+export TW_OPENCLAW_BIN=/usr/local/bin/openclaw  # optional: default is "openclaw"
 ```
 
 Skills for agent-tripwire can be added to `~/.openclaw/workspace/skills/`.
-
-Configure the Openclaw binary path:
-
-```bash
-export TW_OPENCLAW_BIN=/usr/local/bin/openclaw  # default: "openclaw"
-```
 
 ---
 
@@ -292,14 +311,19 @@ atw history ──────────────────────�
                                                        │
                                                Condition evaluator (every tick)
                                                        │
-                                               ┌───────┴────────┐
-                                             --trigger        --agent
-                                          shell command     Openclaw agent
+                                    ┌──────────────────┼──────────────────┐
+                                --trigger         enqueue alert        --agent (fallback)
+                             shell command    ~/.tripwire/alerts.queue  openclaw agent
+                                                       │                 (explicit target)
+                                               heartbeat polls queue
+                                               surfaces alerts in
+                                               main session
 ```
 
 - **One Pyth stream** serves all assets — no per-asset connections, no polling
 - **Daemon auto-start** — spawned detached on first `atw event`, self-terminates when empty
 - **CLI is stateless** — connects to socket, gets response, exits
+- **Queue-based delivery** — alerts persist in `~/.tripwire/alerts.queue`; heartbeat surfaces them
 - **`./data/`** — local CSV store for backtesting (git-ignored)
 
 ---

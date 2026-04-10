@@ -8,6 +8,8 @@ export const TW_DIR = path.join(os.homedir(), ".tripwire");
 export const SOCKET_PATH = path.join(TW_DIR, "tw.sock");
 export const STATE_PATH = path.join(TW_DIR, "state.json");
 export const LOG_DIR = path.join(TW_DIR, "logs");
+export const ALERTS_QUEUE_PATH = path.join(TW_DIR, "alerts.queue");
+export const ALERTS_ACK_PATH = path.join(TW_DIR, "alerts.ack");
 
 export function ensureDirs() {
   fs.mkdirSync(TW_DIR, { recursive: true });
