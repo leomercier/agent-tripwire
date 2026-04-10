@@ -6,14 +6,14 @@ Built as infrastructure for [Openclaw](https://openclaw.ai) and other AI agents 
 
 ```bash
 # Fire a shell command when BTC crosses $80k
-tw event --asset BTC/USD --cross 80000 --trigger "./scripts/notify.sh"
+atw event --asset BTC/USD --cross 80000 --trigger "./scripts/notify.sh"
 
 # Forward to your agent if ETH drops 5% in the last hour
-tw event --asset ETH/USD --down 5% --time 1h \
+atw event --asset ETH/USD --down 5% --time 1h \
   --agent "ETH dropped 5% in the last hour. Assess impact on our position."
 
 # Download historical data for backtesting
-tw history --asset BTC/USD --from 2025-01-01 --to 2025-04-01 --interval 1h
+atw history --asset BTC/USD --from 2025-01-01 --to 2025-04-01 --interval 1h
 ```
 
 Powered by [Pyth Network](https://pyth.network) — one shared SSE stream for all listeners, no polling, no rate limits.
@@ -53,7 +53,7 @@ Starting agent-tripwire daemon...
 
 ## Install
 
-For regular use — puts `tw` on your PATH and installs the Openclaw skill:
+For regular use — puts `atw` and `agent-tripwire` on your PATH and installs the Openclaw skill:
 
 ```bash
 git clone https://github.com/leomercier/agent-tripwire
@@ -73,12 +73,12 @@ Requires Node.js 18+.
 
 ## Commands
 
-### `tw event`
+### `atw event`
 
 Register a price condition. A background daemon starts automatically and owns the Pyth stream.
 
 ```bash
-tw event --asset <symbol> [--cross | --up | --down] [--time] [--trigger | --agent] [--once | --repeat]
+atw event --asset <symbol> [--cross | --up | --down] [--time] [--trigger | --agent] [--once | --repeat]
 ```
 
 **Conditions**
@@ -115,46 +115,46 @@ Snapshot resets at the start of each window. Without `--time`, snapshot is fixed
 
 ```bash
 # BTC crosses $80k — notify once
-tw event --asset BTC/USD --cross 80000 \
+atw event --asset BTC/USD --cross 80000 \
   --trigger "notify-send 'BTC crossed 80k'"
 
 # BTC crosses $80k — notify once
-tw event --asset BTC/USD --cross 80000 \
+atw event --asset BTC/USD --cross 80000 \
   --trigger "echo'BTC crossed 80k'"
 
 # ETH down 10% in the last hour — keep watching, call agent
-tw event --asset ETH/USD --down 10% --time 1h --repeat \
+atw event --asset ETH/USD --down 10% --time 1h --repeat \
   --agent "ETH dropped 10% in the last hour. Review our exposure."
 
 # SOL up 5% today — agent suggests action
-tw event --asset SOL/USD --up 5% --time 1d \
+atw event --asset SOL/USD --up 5% --time 1d \
   --agent "SOL is up 5% today. Suggest position adjustments."
 
 # Both trigger and agent
-tw event --asset BTC/USD --down 15% --time 1d \
+atw event --asset BTC/USD --down 15% --time 1d \
   --trigger "./scripts/hedge.sh" \
   --agent "BTC down 15% today. Assess impact and recommend hedges."
 ```
 
 ---
 
-### `tw price`
+### `atw price`
 
 Get the current price for an asset (via stream cache or REST fallback).
 
 ```bash
-tw price --asset BTC/USD
+atw price --asset BTC/USD
 # BTC/USD: $71,800 (stream)
 ```
 
 ---
 
-### `tw history`
+### `atw history`
 
 Download historical OHLCV bars to CSV for backtesting or analysis.
 
 ```bash
-tw history --asset <symbol> --from <date> --to <date> [--interval <interval>] [--output <path>]
+atw history --asset <symbol> --from <date> --to <date> [--interval <interval>] [--output <path>]
 ```
 
 | Flag         | Description                                                          |
@@ -166,12 +166,12 @@ tw history --asset <symbol> --from <date> --to <date> [--interval <interval>] [-
 | `--output`   | Output path (default: `./data/{asset}-{from}-{to}.csv`)              |
 
 ```bash
-tw history --asset BTC/USD --from 2025-01-01 --to 2025-04-01 --interval 1h
+atw history --asset BTC/USD --from 2025-01-01 --to 2025-04-01 --interval 1h
 # Downloading BTC/USD 1h bars from 2025-01-01 to 2025-04-01...
 # [██████████████████████████████] 100% | chunk 30/30
 # Saved 2160 bars to ./data/BTC-USD-2025-01-01-2025-04-01.csv
 
-tw history --asset ETH/USD --from 2024-01-01 --to 2025-01-01 --interval 1d
+atw history --asset ETH/USD --from 2024-01-01 --to 2025-01-01 --interval 1d
 # → ./data/ETH-USD-2024-01-01-2025-01-01.csv
 ```
 
@@ -196,12 +196,12 @@ Data is saved to `./data/` (git-ignored) for local backtesting and analysis.
 
 ---
 
-### `tw list`
+### `atw list`
 
 Show all active listeners.
 
 ```bash
-tw list
+atw list
 
 # 2 active listener(s):
 #
@@ -218,13 +218,13 @@ tw list
 
 ---
 
-### `tw kill`
+### `atw kill`
 
 Remove a listener by ID or asset.
 
 ```bash
-tw kill 3f2a1b4c-...       # by ID
-tw kill --asset BTC/USD    # all listeners for this asset
+atw kill 3f2a1b4c-...       # by ID
+atw kill --asset BTC/USD    # all listeners for this asset
 ```
 
 Daemon shuts down when the last listener is removed.
@@ -283,10 +283,10 @@ Use `COIN/USD` format: `BTC/USD`, `ETH/USD`, etc.
 ## Architecture
 
 ```
-tw event   ─┐
-tw list    ─┤─→ Unix socket (~/.tripwire/tw.sock) ─→ daemon
-tw kill    ─┘                                          │
-tw history ──────────────────────────────────────────→ Pyth REST (chunked)
+atw event   ─┐
+atw list    ─┤─→ Unix socket (~/.tripwire/tw.sock) ─→ daemon
+atw kill    ─┘                                          │
+atw history ──────────────────────────────────────────→ Pyth REST (chunked)
                                                        │
                                                Pyth SSE stream (one global connection)
                                                        │
@@ -298,7 +298,7 @@ tw history ───────────────────────
 ```
 
 - **One Pyth stream** serves all assets — no per-asset connections, no polling
-- **Daemon auto-start** — spawned detached on first `tw event`, self-terminates when empty
+- **Daemon auto-start** — spawned detached on first `atw event`, self-terminates when empty
 - **CLI is stateless** — connects to socket, gets response, exits
 - **`./data/`** — local CSV store for backtesting (git-ignored)
 
