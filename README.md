@@ -20,17 +20,52 @@ Powered by [Pyth Network](https://pyth.network) — one shared SSE stream for al
 
 ---
 
-## Install
+## Quick start with npx
+
+No install needed for one-off use:
 
 ```bash
-git clone https://github.com/yourorg/agent-tripwire
+# Check a live price
+npx @astridarena/agent-tripwire price --asset BTC/USD
+
+# Download historical data
+npx @astridarena/agent-tripwire history --asset BTC/USD --from 2025-01-01 --to 2025-04-01 --interval 1h
+
+# Set a price alert (starts background daemon automatically)
+npx @astridarena/agent-tripwire event --asset BTC/USD --cross 80000 --trigger "echo BTC hit 80k"
+
+# Fire when BTC moves up 0.001%
+npx @astridarena/agent-tripwire event --asset BTC/USD --up 0.001% --trigger "echo BTC up 0.001%"
+```
+
+Running `event` starts the daemon and prints a confirmation:
+
+```
+Starting agent-tripwire daemon...
+✓ Listener registered
+  ID:        4e73cf5d-25a9-422a-a99e-01200c270d59
+  Asset:     BTC/USD
+  Condition: cross 80000
+  Snapshot:  $71,801.25
+  Once:      true
+  Trigger:   echo BTC hit 80k
+```
+
+## Install
+
+For regular use — puts `tw` on your PATH and installs the Openclaw skill:
+
+```bash
+git clone https://github.com/leomercier/agent-tripwire
 cd agent-tripwire
 ./install.sh
 ```
 
-`install.sh` builds the CLI, runs `npm link` to put `tw` on your PATH, and copies the Openclaw skill file into `~/.openclaw/workspace/skills/tripwire/`.
+Or via npm:
 
-> **Why not `npx`?** `tw event` spawns a detached background daemon. The daemon resolves its own script path at runtime — this breaks under `npx`'s temp-install model. A linked install is required.
+```bash
+npm install -g @astridarena/agent-tripwire
+```
 
 Requires Node.js 18+.
 
@@ -48,11 +83,11 @@ tw event --asset <symbol> [--cross | --up | --down] [--time] [--trigger | --agen
 
 **Conditions**
 
-| Flag | Description |
-|---|---|
+| Flag              | Description                                                   |
+| ----------------- | ------------------------------------------------------------- |
 | `--cross <price>` | Fires when price crosses an absolute level (either direction) |
-| `--up <N%>` | Fires when price rises ≥N% from snapshot |
-| `--down <N%>` | Fires when price falls ≥N% from snapshot |
+| `--up <N%>`       | Fires when price rises ≥N% from snapshot                      |
+| `--down <N%>`     | Fires when price falls ≥N% from snapshot                      |
 
 **Time window** (`--up` / `--down` only)
 
@@ -64,16 +99,16 @@ Snapshot resets at the start of each window. Without `--time`, snapshot is fixed
 
 **Actions** (at least one required)
 
-| Flag | Description |
-|---|---|
-| `--trigger <cmd>` | Shell command executed on fire |
+| Flag               | Description                                        |
+| ------------------ | -------------------------------------------------- |
+| `--trigger <cmd>`  | Shell command executed on fire                     |
 | `--agent <prompt>` | Forwards prompt + market context to Openclaw agent |
 
 **Lifecycle**
 
-| Flag | Default |
-|---|---|
-| `--once` | Default for `--cross` |
+| Flag       | Default                                   |
+| ---------- | ----------------------------------------- |
+| `--once`   | Default for `--cross`                     |
 | `--repeat` | Default for `--up`/`--down` with `--time` |
 
 **Examples**
@@ -82,6 +117,10 @@ Snapshot resets at the start of each window. Without `--time`, snapshot is fixed
 # BTC crosses $80k — notify once
 tw event --asset BTC/USD --cross 80000 \
   --trigger "notify-send 'BTC crossed 80k'"
+
+# BTC crosses $80k — notify once
+tw event --asset BTC/USD --cross 80000 \
+  --trigger "echo'BTC crossed 80k'"
 
 # ETH down 10% in the last hour — keep watching, call agent
 tw event --asset ETH/USD --down 10% --time 1h --repeat \
@@ -118,13 +157,13 @@ Download historical OHLCV bars to CSV for backtesting or analysis.
 tw history --asset <symbol> --from <date> --to <date> [--interval <interval>] [--output <path>]
 ```
 
-| Flag | Description |
-|---|---|
-| `--asset` | Asset symbol, e.g. `BTC/USD` |
-| `--from` | Start date (`YYYY-MM-DD` or Unix seconds) |
-| `--to` | End date (`YYYY-MM-DD` or Unix seconds) |
+| Flag         | Description                                                          |
+| ------------ | -------------------------------------------------------------------- |
+| `--asset`    | Asset symbol, e.g. `BTC/USD`                                         |
+| `--from`     | Start date (`YYYY-MM-DD` or Unix seconds)                            |
+| `--to`       | End date (`YYYY-MM-DD` or Unix seconds)                              |
 | `--interval` | Bar size: `1m`, `5m`, `15m`, `30m`, `1h`, `4h`, `1d` (default: `1h`) |
-| `--output` | Output path (default: `./data/{asset}-{from}-{to}.csv`) |
+| `--output`   | Output path (default: `./data/{asset}-{from}-{to}.csv`)              |
 
 ```bash
 tw history --asset BTC/USD --from 2025-01-01 --to 2025-04-01 --interval 1h
@@ -196,14 +235,14 @@ Daemon shuts down when the last listener is removed.
 
 Injected into every `--trigger` shell command:
 
-| Var | Value |
-|---|---|
-| `TW_ASSET` | e.g. `BTC/USD` |
-| `TW_PRICE` | Price at fire time |
-| `TW_CONDITION` | `cross`, `up`, or `down` |
-| `TW_PCT_CHANGE` | % change (up/down only) |
-| `TW_LISTENER_ID` | UUID of the listener |
-| `TW_FIRED_AT` | ISO 8601 timestamp |
+| Var              | Value                    |
+| ---------------- | ------------------------ |
+| `TW_ASSET`       | e.g. `BTC/USD`           |
+| `TW_PRICE`       | Price at fire time       |
+| `TW_CONDITION`   | `cross`, `up`, or `down` |
+| `TW_PCT_CHANGE`  | % change (up/down only)  |
+| `TW_LISTENER_ID` | UUID of the listener     |
+| `TW_FIRED_AT`    | ISO 8601 timestamp       |
 
 ```bash
 #!/bin/bash

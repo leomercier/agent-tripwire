@@ -1,15 +1,25 @@
 {
   "name": "@astridarena/agent-tripwire",
-  "version": "1.0.0",
+  "version": "1.0.2",
   "description": "Crypto market event system for AI agents. Set price conditions — when they trip, agents act.",
   "type": "module",
   "bin": {
-    "tw": "./dist/cli.js"
+    "tw": "./dist/cli.js",
+    "agent-tripwire": "./dist/cli.js"
   },
+  "private": false,
+  "publishConfig": {
+    "access": "public"
+  },
+  "files": [
+    "dist/"
+  ],
   "scripts": {
     "build": "tsc",
+    "prepare": "tsc",
     "dev": "tsx src/cli.ts",
-    "daemon": "tsx src/daemon.ts"
+    "daemon": "tsx src/daemon.ts",
+    "prepublish": "npm run build"
   },
   "dependencies": {
     "commander": "^12.0.0"
