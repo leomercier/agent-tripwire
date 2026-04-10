@@ -11,12 +11,12 @@ npm link
 
 echo "▸ Installing openclaw skill..."
 mkdir -p "$SKILL_DIR"
-cp "$SCRIPT_DIR/skill/SKILL.md" "$SKILL_DIR/SKILL.md"
+cp "$SCRIPT_DIR/SKILL.md" "$SKILL_DIR/SKILL.md"
 
 echo ""
 echo "✓ agent-tripwire installed"
 echo ""
-echo "  CLI:   tw --help"
+echo "  CLI:   atw --help"
 echo "  Skill: $SKILL_DIR/SKILL.md"
 echo ""
 echo "  Reload openclaw to pick up the skill:"

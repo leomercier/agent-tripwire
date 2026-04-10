@@ -54,7 +54,7 @@ async function ensureDaemon(): Promise<void> {
 const program = new Command();
 
 program
-  .name("tw")
+  .name("atw")
   .description("Pyth Network price event watcher")
   .version("1.0.0");
 
